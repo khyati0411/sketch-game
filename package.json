@@ -18,7 +18,8 @@
     "test": "npm test --workspaces --if-present",
     "sdlc:validate": "tsx scripts/sdlc/src/cli/validate.ts",
     "sdlc:backlog": "tsx scripts/sdlc/src/cli/backlog.ts",
-    "sdlc:trace": "tsx scripts/sdlc/src/cli/trace.ts"
+    "sdlc:trace": "tsx scripts/sdlc/src/cli/trace.ts",
+    "sdlc:site": "tsx scripts/sdlc/src/cli/site.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1"
