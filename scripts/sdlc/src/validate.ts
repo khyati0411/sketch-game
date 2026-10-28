@@ -4,7 +4,15 @@ export type ValidationError = { rule: string; id?: string; file?: string; messag
 
 const ACTIVE_STATUSES = new Set(['In Progress', 'In Review', 'Done']);
 
-export function validate(items: Item[], e2e: Map<string, string[]>): ValidationError[] {
+/**
+ * `baseFiles` (item paths relative to docs/sdlc that exist on the PR's base branch) turns on the
+ * tests-on-base gate: an active story's test cases must already be merged before its code.
+ */
+export function validate(
+  items: Item[],
+  e2e: Map<string, string[]>,
+  { baseFiles }: { baseFiles?: Set<string> } = {},
+): ValidationError[] {
   const errors: ValidationError[] = [];
   const byId = new Map<string, Item>();
   const fileOf = (item: Item) => (item as Item & { file?: string }).file;
@@ -54,12 +62,24 @@ export function validate(items: Item[], e2e: Map<string, string[]>): ValidationE
     }
     if (ACTIVE_STATUSES.has(story.status) && actual.length === 0)
       err('story-has-tests', story, `story is ${story.status} but has no test cases`);
+    if (baseFiles && ACTIVE_STATUSES.has(story.status)) {
+      const missing = testCases
+        .filter((tc) => tc.parent.includes(story.id) && !baseFiles.has(fileOf(tc) ?? ''))
+        .map((tc) => tc.id);
+      if (missing.length)
+        err('tests-on-base', story, `story is ${story.status} but test cases [${missing}] are not merged to the base branch yet`);
+    }
   }
 
   for (const tc of testCases) {
     const allDone = tc.parent.every((p) => (byId.get(p) as Story | undefined)?.status === 'Done');
-    if (tc.automation === 'automated' && allDone && !e2e.has(tc.id))
+    const tests = e2e.get(tc.id) ?? [];
+    if (tc.automation === 'automated' && allDone && tests.length === 0)
       err('automated-has-e2e', tc, `automated test case of a Done story has no Playwright test titled "${tc.id} …"`);
+    if (tc.automation === 'automated' && tests.length > 1)
+      err('e2e-unique', tc, `${tests.length} Playwright tests are titled "${tc.id} …" (${tests.join(', ')}); expected exactly one`);
+    if (tc.automation === 'manual' && tests.length > 0)
+      err('manual-has-no-e2e', tc, `manual test case has a Playwright test in ${tests.join(', ')}; make it automated or drop the test`);
   }
 
   for (const [id, files] of e2e)

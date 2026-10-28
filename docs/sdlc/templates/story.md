@@ -4,7 +4,7 @@ type: story
 title: <Short story title>
 parent: EP-XXX
 release: R1              # R1 | R2 | R3
-sprint: SPRINT-XX        # optional until sprint planning
+# sprint: SPRINT-01      # uncomment at sprint planning
 status: Draft            # Draft | Ready | In Progress | In Review | Done
 points: 3                # 1 | 2 | 3 | 5 | 8 | 13
 links:
