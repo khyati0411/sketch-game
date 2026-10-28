@@ -1,0 +1,57 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the PR gate below reads the base branch
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run sdlc:validate
+      # On PRs: an active story's test cases must already be merged to the base branch (spec §6.5).
+      - if: github.event_name == 'pull_request'
+        run: npm run sdlc:validate -- --base origin/${{ github.base_ref }}
+      - run: npm test
+      - run: npx playwright test
+        env:
+          CI: 'true'
+      # Generate the SDLC views even when tests fail, so failures are visible too.
+      - if: always()
+        run: npm run sdlc:backlog && npm run sdlc:trace && npm run sdlc:site
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdlc-site
+          path: site/
+      - if: always() && github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/
+
+  deploy-pages:
+    needs: ci
+    if: always() && github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.ci.result != 'cancelled'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,27 @@
+{
+  "name": "sketch-game",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "server",
+    "client",
+    "scripts/sdlc"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "npm run build -w client && npm run build -w server",
+    "start": "node server/dist/index.js",
+    "dev": "npm run dev -w server",
+    "test": "npm test --workspaces --if-present",
+    "sdlc:validate": "tsx scripts/sdlc/src/cli/validate.ts",
+    "sdlc:backlog": "tsx scripts/sdlc/src/cli/backlog.ts",
+    "sdlc:trace": "tsx scripts/sdlc/src/cli/trace.ts",
+    "sdlc:site": "tsx scripts/sdlc/src/cli/site.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1"
+  }
+}
