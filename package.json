@@ -15,7 +15,8 @@
     "build": "npm run build -w client && npm run build -w server",
     "start": "node server/dist/index.js",
     "dev": "npm run dev -w server",
-    "test": "npm test --workspaces --if-present"
+    "test": "npm test --workspaces --if-present",
+    "sdlc:validate": "tsx scripts/sdlc/src/cli/validate.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1"
