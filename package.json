@@ -2,12 +2,22 @@
   "name": "sketch-game",
   "private": true,
   "type": "module",
-  "workspaces": ["shared", "server", "client", "scripts/sdlc"],
-  "engines": { "node": ">=24" },
+  "workspaces": [
+    "shared",
+    "server",
+    "client",
+    "scripts/sdlc"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "build": "npm run build -w client && npm run build -w server",
     "start": "node server/dist/index.js",
     "dev": "npm run dev -w server",
     "test": "npm test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1"
   }
 }

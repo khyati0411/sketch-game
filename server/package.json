@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsup src/index.ts --format esm --out-dir dist --no-splitting --noExternal @sketch/shared",
+    "build": "tsup",
     "dev": "tsx watch src/index.ts",
     "test": "vitest run"
   },
