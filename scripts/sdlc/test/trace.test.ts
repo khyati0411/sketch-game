@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parsePlaywrightReport } from '../src/playwright-report';
+import { listPlaywrightTests, parsePlaywrightReport } from '../src/playwright-report';
 import { renderTraceability } from '../src/trace';
 import { validItems } from './fixtures';
 
@@ -51,5 +51,25 @@ describe('renderTraceability', () => {
 
   it('handles an empty item set', () => {
     expect(renderTraceability([], new Map(), meta)).toContain('Coverage: n/a');
+  });
+});
+
+describe('listPlaywrightTests', () => {
+  const run = (title: string, file: string, ...attempts: { status: string; duration: number; error?: { message: string } }[]) =>
+    ({ title, file, tests: [{ projectName: 'chromium', results: attempts }] });
+
+  it('lists every test, with or without a TC id, with its last attempt', () => {
+    const report = {
+      stats: { startTime: '2026-10-30T09:00:00.000Z', duration: 4200 },
+      suites: [{ title: 'room.spec.ts', specs: [run('TC-001 room link', 'room.spec.ts', { status: 'failed', duration: 900 }, { status: 'passed', duration: 800 })],
+        suites: [{ title: 'smoke', specs: [run('smoke: app loads', 'smoke.spec.ts', { status: 'timedOut', duration: 30000, error: { message: 'Timeout\nat line 3' } })] }] }],
+    };
+    const { startedAt, durationMs, tests } = listPlaywrightTests(report);
+    expect(startedAt).toBe('2026-10-30T09:00:00.000Z');
+    expect(durationMs).toBe(4200);
+    expect(tests).toEqual([
+      { title: 'TC-001 room link', file: 'room.spec.ts', project: 'chromium', result: 'passed', durationMs: 800, retried: true, error: undefined },
+      { title: 'smoke: app loads', file: 'smoke.spec.ts', project: 'chromium', result: 'failed', durationMs: 30000, retried: false, error: 'Timeout' },
+    ]);
   });
 });

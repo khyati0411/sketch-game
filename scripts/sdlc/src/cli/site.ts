@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import { execSync } from 'node:child_process';
 import { buildSite } from '../site';
 import { loadItems } from '../load';
-import { readPlaywrightReport } from '../playwright-report';
+import { listPlaywrightTests, parsePlaywrightReport, readPlaywrightJson } from '../playwright-report';
 
 const OUT = 'site';
 
@@ -11,9 +11,12 @@ const repoUrl = process.env.GITHUB_REPOSITORY ? `${process.env.GITHUB_SERVER_URL
 // The site has no stories/ folder: link story files on GitHub, or back into the checkout when built locally.
 const linkBase = repoUrl ? `${repoUrl}/blob/${process.env.GITHUB_SHA ?? 'main'}/docs/sdlc/` : '../docs/sdlc/';
 
+const report = await readPlaywrightJson('test-results/results.json');
+
 await buildSite({
   items: (await loadItems('docs/sdlc')).items,
-  results: await readPlaywrightReport('test-results/results.json'),
+  results: report === undefined ? new Map() : parsePlaywrightReport(report),
+  run: report === undefined ? undefined : listPlaywrightTests(report),
   outDir: OUT,
   commit,
   generatedAt: new Date().toISOString(),
