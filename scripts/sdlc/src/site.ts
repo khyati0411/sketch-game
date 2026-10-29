@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { RELEASES, STORY_STATUSES, type Epic, type Item, type Story, type TestCase } from './schema';
-import type { TestResult } from './playwright-report';
+import type { RunSummary, TestResult } from './playwright-report';
 import { resultOf, type TraceResult } from './trace';
 
 const esc = (s: string) =>
@@ -11,7 +11,7 @@ const PAGES = [
   ['index.html', 'Home'],
   ['backlog.html', 'Backlog'],
   ['traceability.html', 'Traceability'],
-  ['playwright/index.html', 'Test report'],
+  ['tests.html', 'Test report'],
 ] as const;
 
 const CSS = `
@@ -110,6 +110,8 @@ export async function buildSite(opts: {
   /** Prepended to `stories/US-###.md` for links to story files. */
   linkBase: string;
   repoUrl?: string;
+  /** The latest Playwright run; undefined when there is no report. */
+  run?: RunSummary;
 }): Promise<void> {
   const { items, results, linkBase } = opts;
   const byId = new Map(items.map((i) => [i.id, i]));
@@ -190,10 +192,35 @@ ${rows.join('\n') || '<tr><td colspan="5" class="empty">No stories yet.</td></tr
 </table></div>
 </section>`;
 
+  const run = opts.run;
+  const runCounts = new Map<TestResult, number>();
+  for (const t of run?.tests ?? []) runCounts.set(t.result, (runCounts.get(t.result) ?? 0) + 1);
+  const secs = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
+  const testRow = (t: RunSummary['tests'][number]) => {
+    const tc = /^(TC-\d{3})\b\s*(.*)$/.exec(t.title);
+    const name = tc ? `<span class="id">${tc[1]}</span> ${esc(tc[2])}` : esc(t.title);
+    const notes = [t.retried ? 'Passed on retry' : '', t.error ? esc(t.error) : ''].filter(Boolean).join(' · ');
+    return `<tr><td>${name}${notes ? `<small>${notes}</small>` : ''}</td><td><code>${esc(t.file)}</code></td><td>${esc(t.project)}</td><td>${secs(t.durationMs)}</td><td>${CHIP[t.result]}</td></tr>`;
+  };
+  const testsPage = `<section>
+<div><h1>Test report</h1><p class="sub">${
+    run
+      ? `Run ${esc(run.startedAt?.slice(0, 16).replace('T', ' ') ?? '')} UTC · ${run.tests.length} ${run.tests.length === 1 ? 'test' : 'tests'}${run.durationMs ? ` · ${secs(run.durationMs)}` : ''}`
+      : 'No test run yet. The next CI run fills this page.'
+  }</p></div>
+${run ? `<div class="chips">${[...runCounts].map(([r, n]) => CHIP[r].replace('</span>', ` · ${n}</span>`)).join('')}</div>
+<div class="tbl"><table>
+<tr><th>Test</th><th>File</th><th>Browser</th><th>Duration</th><th>Result</th></tr>
+${run.tests.map(testRow).join('\n') || '<tr><td colspan="5" class="empty">No tests in this run.</td></tr>'}
+</table></div>` : ''}
+<p class="sub"><a href="playwright/index.html">Open the full Playwright report</a> for step-by-step traces and screenshots.</p>
+</section>`;
+
   await fs.mkdir(opts.outDir, { recursive: true });
   await Promise.all([
     fs.writeFile(path.join(opts.outDir, 'index.html'), page('index.html', 'Home', index)),
     fs.writeFile(path.join(opts.outDir, 'backlog.html'), page('backlog.html', 'Backlog', `<h1>Backlog</h1>\n${backlog}`)),
     fs.writeFile(path.join(opts.outDir, 'traceability.html'), page('traceability.html', 'Traceability', trace)),
+    fs.writeFile(path.join(opts.outDir, 'tests.html'), page('tests.html', 'Test report', testsPage)),
   ]);
 }

@@ -18,11 +18,11 @@ const column = (html: string, status: string) => html.split(`data-status="${stat
 describe('buildSite', () => {
   it('links every page from a shared nav, including the Playwright report', async () => {
     const read = await build();
-    for (const page of ['index.html', 'backlog.html', 'traceability.html']) {
+    for (const page of ['index.html', 'backlog.html', 'traceability.html', 'tests.html']) {
       const html = read(page);
       expect(html).toContain('href="backlog.html"');
       expect(html).toContain('href="traceability.html"');
-      expect(html).toContain('href="playwright/index.html"');
+      expect(html).toContain('href="tests.html"');
     }
   });
 
@@ -58,6 +58,27 @@ describe('buildSite', () => {
     expect(trace).toMatch(/US-002[\s\S]*?No test cases/);
     const notRun = (await build(validItems(), new Map()))('traceability.html');
     expect(notRun).toMatch(/TC-001[\s\S]*?○ Not run/);
+  });
+
+  it('test report lists each test with a result chip and links the full Playwright report', async () => {
+    const outDir = path.join(tempTree({}), 'site');
+    await buildSite({
+      items: validItems(), results: new Map(), outDir, commit: 'abc1234', generatedAt: '2026-10-30T09:00:00Z', linkBase: '',
+      run: { startedAt: '2026-10-30T08:59:00.000Z', durationMs: 4200, tests: [
+        { title: 'TC-001 room link', file: 'room.spec.ts', project: 'chromium', result: 'passed', durationMs: 800, retried: true },
+        { title: 'smoke: <app> loads', file: 'smoke.spec.ts', project: 'chromium', result: 'failed', durationMs: 30000, retried: false, error: 'Timeout' },
+      ] },
+    });
+    const tests = fs.readFileSync(path.join(outDir, 'tests.html'), 'utf8');
+    expect(tests).toContain('href="playwright/index.html"');
+    expect(tests).toMatch(/TC-001[\s\S]*?Passed on retry[\s\S]*?✓ Passed/);
+    expect(tests).toMatch(/smoke: &lt;app&gt; loads[\s\S]*?Timeout[\s\S]*?✗ Failed/);
+    expect(tests).toContain('0.8 s');
+    expect(fs.readFileSync(path.join(outDir, 'index.html'), 'utf8')).toContain('href="tests.html"');
+  });
+
+  it('test report says so when there is no run', async () => {
+    expect((await build())('tests.html')).toContain('No test run yet');
   });
 
   it('escapes item titles', async () => {
