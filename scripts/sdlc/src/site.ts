@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { RELEASES, STORY_STATUSES, type Epic, type Item, type Story, type TestCase } from './schema';
+import { RELEASES, STORY_STATUSES, type Epic, type Initiative, type Item, type Story, type TestCase } from './schema';
 import type { RunSummary, TestResult } from './playwright-report';
 import { resultOf, type TraceResult } from './trace';
 
@@ -9,6 +9,7 @@ const esc = (s: string) =>
 
 const PAGES = [
   ['index.html', 'Home'],
+  ['initiatives.html', 'Initiatives'],
   ['backlog.html', 'Backlog'],
   ['traceability.html', 'Traceability'],
   ['tests.html', 'Test report'],
@@ -62,6 +63,21 @@ td small,.tk small{display:block;color:var(--muted);font-size:12px}
 .tk{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:2px;background:var(--bg)}
 .tk p{margin:0;font-size:14px;font-weight:600}
 .empty{color:var(--muted);font-size:13px;margin:0}
+.init{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:16px}
+.init-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.init-head h2{flex:1 1 240px}
+.init-head .meter,.epic .meter{flex-basis:100%;margin-top:0}
+.stats{color:var(--muted);font-size:13px}
+.epics{display:flex;flex-direction:column;gap:10px;padding-left:16px;border-left:3px solid var(--accent)}
+.epic{border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.epic summary{cursor:pointer;padding:12px 14px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;list-style-position:outside}
+.epic summary b{flex:1 1 200px}
+.tag{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent)}
+.stories{list-style:none;margin:0;padding:0 14px 12px 30px;display:flex;flex-direction:column;gap:6px}
+.story{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+.story .t{flex:1 1 180px;font-weight:600;font-size:14px}
+.story small{flex-basis:100%;color:var(--muted);font-size:12px}
+.epic>.empty{padding:0 14px 12px 30px}
 @media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.releases,.board{grid-template-columns:1fr}}
 `;
 
@@ -94,6 +110,9 @@ const CHIP: Record<TraceResult, string> = {
 
 const pct = (n: number, of: number) => (of ? `${Math.round((n / of) * 100)}%` : '—');
 const meter = (n: number, of: number) => `<div class="meter"><i style="width:${of ? Math.round((n / of) * 100) : 0}%"></i></div>`;
+
+const STATUS_CLASS: Record<string, string> = { Done: 'ok', Approved: 'ok', 'In Progress': 'prog', 'In Review': 'prog' };
+const statusChip = (status: string) => `<span class="chip ${STATUS_CLASS[status] ?? 'na'}">${esc(status)}</span>`;
 
 function releaseStatus(stories: Story[]): string {
   if (stories.length === 0) return '<span class="chip na">Not started</span>';
@@ -148,6 +167,39 @@ ${RELEASES.map((r) => {
   }</b>${epics.length ? `<small>${epics.join(' · ')}</small>` : ''}${releaseStatus(inRelease)}</div>`;
 }).join('\n')}
 </div>
+</section>`;
+
+  const byIdOrder = <T extends Item>(a: T, b: T) => a.id.localeCompare(b.id);
+  const initiatives = items.filter((i): i is Initiative => i.type === 'initiative').sort(byIdOrder);
+  const epicsOf = (init: Initiative) => items.filter((i): i is Epic => i.type === 'epic' && i.parent === init.id).sort(byIdOrder);
+  const storiesOf = (epic: Epic) => stories.filter((s) => s.parent === epic.id);
+  const doneOf = (list: Story[]) => list.filter((s) => s.status === 'Done').length;
+  const fileLink = (folder: string, id: string) => `<a class="id" href="${linkBase}${folder}/${id}.md">${id}</a>`;
+  const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+  const storyRow = (s: Story) => {
+    const meta = [s.sprint, s.points ? `${s.points} pts` : '', plural(testsOf(s).length, 'test case')].filter(Boolean);
+    return `<li class="story" data-story="${s.id}">${storyLink(s)}<span class="t">${esc(s.title)}</span>${statusChip(s.status)}<small>${meta.map((m) => esc(m as string)).join(' · ')}</small></li>`;
+  };
+  const epicBlock = (e: Epic) => {
+    const list = storiesOf(e);
+    return `<details class="epic" data-epic="${e.id}" open><summary>${fileLink('epics', e.id)}<b>${esc(e.title)}</b><span class="tag">${e.release}</span>${statusChip(e.status)}<span class="stats">${doneOf(list)} of ${plural(list.length, 'story', 'stories')} done</span>${meter(doneOf(list), list.length)}</summary>${
+      list.length ? `<ul class="stories">${list.map(storyRow).join('')}</ul>` : '<p class="empty">No stories yet.</p>'
+    }</details>`;
+  };
+  const initiativesPage = `<section>
+<div><h1>Initiatives</h1><p class="sub">Initiative → epic → story, with status and progress at each level.</p></div>
+${
+  initiatives
+    .map((init) => {
+      const epics = epicsOf(init);
+      const all = epics.flatMap(storiesOf);
+      return `<article class="init" data-initiative="${init.id}"><div class="init-head">${fileLink('initiatives', init.id)}<h2>${esc(init.title)}</h2>${statusChip(init.status)}<span class="stats">${plural(epics.length, 'epic')} · ${plural(all.length, 'story', 'stories')} ·${pct(doneOf(all), all.length)} done</span>${meter(doneOf(all), all.length)}</div>${
+        epics.length ? `<div class="epics">${epics.map(epicBlock).join('\n')}</div>` : '<p class="empty">No epics yet.</p>'
+      }</article>`;
+    })
+    .join('\n') || '<p class="empty">No initiatives yet.</p>'
+}
 </section>`;
 
   const backlog = RELEASES.map((r) => {
@@ -219,6 +271,7 @@ ${run.tests.map(testRow).join('\n') || '<tr><td colspan="5" class="empty">No tes
   await fs.mkdir(opts.outDir, { recursive: true });
   await Promise.all([
     fs.writeFile(path.join(opts.outDir, 'index.html'), page('index.html', 'Home', index)),
+    fs.writeFile(path.join(opts.outDir, 'initiatives.html'), page('initiatives.html', 'Initiatives', initiativesPage)),
     fs.writeFile(path.join(opts.outDir, 'backlog.html'), page('backlog.html', 'Backlog', `<h1>Backlog</h1>\n${backlog}`)),
     fs.writeFile(path.join(opts.outDir, 'traceability.html'), page('traceability.html', 'Traceability', trace)),
     fs.writeFile(path.join(opts.outDir, 'tests.html'), page('tests.html', 'Test report', testsPage)),
