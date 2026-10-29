@@ -16,7 +16,8 @@ test cases, automated test scripts, and traceability, while producing a real, pl
 
 There are two deliverables, and both are part of the showcase:
 
-1. **The game:** live at a public URL.
+1. **The game:** hosted on the owner's PC and playable by anyone on the same network
+   (changed 2026-10-29, see ADR-002; previously a public URL).
 2. **The SDLC trail:** every initiative, epic, story, test case, and test result lives in
    the public GitHub repo and links together by ID, with a traceability matrix that is
    generated, never hand-written.
@@ -24,7 +25,8 @@ There are two deliverables, and both are part of the showcase:
 ## 2. Goals, non-goals, anti-goals
 
 **Goals**
-- A playable, fun, low-latency skribbl.io-style game anyone can open from a link.
+- A playable, fun, low-latency skribbl.io-style game that anyone on the same network can
+  open from a link.
 - A complete SDLC artifact chain for every feature, consistent across three releases.
 - Automated end-to-end tests (Playwright) that map 1:1 to documented test cases and run in CI.
 - A process that is repeatable with Claude. After it has been proven on this project, each
@@ -45,8 +47,9 @@ There are two deliverables, and both are part of the showcase:
 
 ## 3. Constraints
 
-- Everything is local Markdown in the repo, plus the public GitHub remote and the host.
-- Free-tier hosting, and the host must support WebSockets.
+- Everything is local Markdown in the repo, plus the public GitHub remote (code, PRs, CI,
+  Pages dashboard).
+- No third-party hosting for the game: it runs on the owner's PC (ADR-002).
 - Dev machine: Windows 11, Node 24, git available.
 - Releases R1 and R2 have no database and no accounts (guest nicknames only). A database
   arrives only in R3.
@@ -111,9 +114,9 @@ All three releases are described in the initiative(s). The backlog phases them.
 
 **Non-functional targets (R1, Claude's call)**
 - Stroke latency from drawer to guessers: under 150 ms p95 with 8 players on the
-  deployed host (same region).
+  owner's PC and local network.
 - Turn transitions and score updates show up on every client within 500 ms.
-- Load target for the free tier: 20 concurrent rooms × 8 players.
+- Load target: 20 concurrent rooms × 8 players on the owner's PC.
 - These become non-functional test cases; the latency check runs as an automated
   multi-context Playwright test.
 
@@ -121,7 +124,8 @@ All three releases are described in the initiative(s). The backlog phases them.
 - Letter hints revealed over time; "close guess" notice to the guesser only.
 - Sound effects; end-of-game podium.
 - Host settings: rounds, draw time, word count, custom word list (optionally custom-only).
-- Public matchmaking: a "Play" button joins an open public room or creates one.
+- Public matchmaking: a "Play" button joins an open public room on this server or creates
+  one. With local hosting, "public" means anyone who can reach the owner's PC.
 - Basic moderation for public rooms: a profanity filter on nicknames and chat, chat rate
   limiting, and vote-kick. Each is a story with its own test cases.
 
@@ -258,12 +262,13 @@ owner chooses, those notes become reusable Claude skills or slash commands, one 
 
 - Public GitHub repo with all docs.
 - GitHub Actions CI as described in 6.4.
-- Live deployment: a single Node service serving the built client and the Socket.IO
-  endpoint on a WebSocket-capable free host (e.g. Render). Final choice is an ADR.
-- Free tier with a scheduled keep-alive ping (e.g. a GitHub Actions cron) to reduce
-  sleeping. Occasional cold starts and restarts that wipe rooms are accepted for a demo;
-  the README says so.
-- The README links to the live game, the GitHub Pages matrix/report, and the SDLC docs.
+- Local hosting (ADR-002, replacing ADR-001's Render plan): a single Node service on the
+  owner's PC serves the built client and the Socket.IO endpoint on port 3000, listening on
+  all interfaces. The owner plays at `http://localhost:3000`; others on the same Wi-Fi join
+  at the LAN address the server prints on start.
+- No live public URL. The showcase is the repo, the Pages dashboard, and live demos.
+- The README links to the GitHub Pages matrix/report and the SDLC docs, and explains how
+  to run the game and invite players on the same network.
 
 ## 8. Decided by Claude (owner may override)
 
@@ -272,7 +277,7 @@ owner chooses, those notes become reusable Claude skills or slash commands, one 
 - One living test plan instead of one per release; per-release scope sits in sections.
 - Sprint files exist even though the work is solo, so the sprint trail is part of the
   showcase. Sprint length is decided at the first sprint planning.
-- Single-service deployment (client served by the Node server).
+- Single-service app (client served by the Node server).
 - Room/connection rules and non-functional targets in §5.
 - R1 uses fixed rounds and timer; configurability is in R2.
 - **Planning scope:** the implementation plan covers project setup (repo, SDLC scaffolding,

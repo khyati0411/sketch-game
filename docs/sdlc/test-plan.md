@@ -14,7 +14,7 @@ functional · negative · realtime · non-functional
 ## Environments
 - Local: `npm run build && npm start`
 - CI: GitHub Actions (Linux, Chromium)
-- Live: free-tier host (smoke only)
+- Local network: owner's PC serving other devices on the same Wi-Fi (manual multi-device checks, ADR-002)
 
 ## Entry / exit criteria
 
