@@ -48,4 +48,11 @@ Each stage is done on its own `sdlc/<release>-<nn>-<stage>` branch and merged th
 
 These are notes on how Claude handled each stage: prompt patterns that worked, template changes, and pitfalls. At the R1 retrospective, they become reusable Claude skills.
 
-_(none yet)_
+### Stage 1: Initiative (INIT-001, 2026-10-30)
+
+- **Inputs Claude used:** the design doc (intent, goals, release scope), ADR-002 (hosting), and the `initiative` template.
+- **Inputs only the owner could give (asked as options):** target audience → personas; which success-metric families count; the product name. Everything else was derived.
+- **What Claude drafted:** all sections. Goals map 1:1 to measurable metrics (G1–G5), and each risk has a mitigation that points to a later stage or doc.
+- **Owner edits during review:** _(fill in at sign-off: none / list)_
+- **Skill candidate `/initiative`:** read the design doc and ADRs → ask about audience, metrics and name → fill the template → run `sdlc:validate` → open the `sdlc/<release>-01-initiative` PR.
+- **Pitfall:** the initiative's status stays `Draft` until the owner signs off. It flips to `Approved` in the same PR, just before merge.
