@@ -56,3 +56,13 @@ These are notes on how Claude handled each stage: prompt patterns that worked, t
 - **Owner edits during review:** _(fill in at sign-off: none / list)_
 - **Skill candidate `/initiative`:** read the design doc and ADRs → ask about audience, metrics and name → fill the template → run `sdlc:validate` → open the `sdlc/<release>-01-initiative` PR.
 - **Pitfall:** the initiative's status stays `Draft` until the owner signs off. It flips to `Approved` in the same PR, just before merge.
+
+### Stage 2: Epics and stories (R1, 2026-10-30)
+
+- **Inputs Claude used:** INIT-001 (R1 scope, personas, goals G2 and G3), design doc §5 (room and connection rules, fixed 3 rounds × 80 s, non-functional targets), and the `epic` and `story` templates.
+- **Owner input:** one instruction, "based on the initiative write the epics and user stories". No questions were needed, because the initiative and design already fixed scope and personas.
+- **What Claude drafted:** 5 epics and 22 stories (63 points). Every R1 scope item in INIT-001 maps to at least one story. The design doc's room rules became EP-005, and goals G2 and G3 became the non-functional stories US-021 and US-022. Every story uses an INIT-001 persona and has Given/When/Then acceptance criteria.
+- **Method:** stories were written as data (id, epic, persona, want, so that, criteria) and rendered through the templates, which keeps the format identical across all 22.
+- **Left for later stages:** sprint assignment (stage 3), exact palette, word list, sync model and scoring formula (stage 4 ADRs), test cases (stage 5).
+- **Owner edits during review:** _(fill in at sign-off)_
+- **Skill candidate `/stories`:** read the initiative and design → one epic per capability area → stories per scope item with personas and Given/When/Then → `sdlc:validate` → open the `sdlc/<release>-02-stories` PR.
