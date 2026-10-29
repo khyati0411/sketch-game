@@ -1,6 +1,12 @@
 import type { Item, Story, TestCase } from './schema';
 import type { TestResult } from './playwright-report';
 
+export type TraceResult = TestResult | 'manual';
+
+/** A manual test case has no automated result; an automated one without a report entry has not run. */
+export const resultOf = (tc: TestCase, results: Map<string, TestResult>): TraceResult =>
+  tc.automation === 'manual' ? 'manual' : (results.get(tc.id) ?? 'not run');
+
 export function renderTraceability(
   items: Item[],
   results: Map<string, TestResult>,
@@ -9,7 +15,6 @@ export function renderTraceability(
   const byId = new Map(items.map((i) => [i.id, i]));
   const stories = items.filter((i): i is Story => i.type === 'story').sort((a, b) => a.id.localeCompare(b.id));
   const testCases = items.filter((i): i is TestCase => i.type === 'test-case').sort((a, b) => a.id.localeCompare(b.id));
-  const resultOf = (tc: TestCase) => (tc.automation === 'manual' ? 'manual' : (results.get(tc.id) ?? 'not run'));
 
   const rows: string[] = [];
   for (const story of stories) {
@@ -18,12 +23,12 @@ export function renderTraceability(
     const prefix = `| ${initiative} | ${story.parent} | ${story.id} | ${story.status} |`;
     const tcs = testCases.filter((tc) => tc.parent.includes(story.id));
     if (tcs.length === 0) rows.push(`${prefix} — | — | — |`);
-    for (const tc of tcs) rows.push(`${prefix} ${tc.id} | ${tc.automation} | ${resultOf(tc)} |`);
+    for (const tc of tcs) rows.push(`${prefix} ${tc.id} | ${tc.automation} | ${resultOf(tc, results)} |`);
   }
 
   // Count each test case once, even when it covers several stories.
   const counts = { passed: 0, failed: 0, skipped: 0, 'not run': 0, manual: 0 };
-  for (const tc of testCases) counts[resultOf(tc)]++;
+  for (const tc of testCases) counts[resultOf(tc, results)]++;
 
   const covered = stories.filter((s) => testCases.some((tc) => tc.parent.includes(s.id))).length;
   const coverage = stories.length

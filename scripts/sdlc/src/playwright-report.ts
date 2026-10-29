@@ -1,4 +1,16 @@
+import fs from 'node:fs/promises';
+
 export type TestResult = 'passed' | 'failed' | 'skipped' | 'not run';
+
+/** Reads Playwright's JSON report at `file`; with no report, every automated test case counts as not run. */
+export async function readPlaywrightReport(file: string): Promise<Map<string, TestResult>> {
+  try {
+    return parsePlaywrightReport(JSON.parse(await fs.readFile(file, 'utf8')));
+  } catch {
+    console.warn(`no Playwright report at ${file}; every automated test case shows "not run"`);
+    return new Map();
+  }
+}
 
 type Suite = { specs?: Spec[]; suites?: Suite[] };
 type Spec = { title: string; tests?: { results?: { status: string }[] }[] };
