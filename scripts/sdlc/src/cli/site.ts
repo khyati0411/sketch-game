@@ -2,10 +2,9 @@ import fs from 'node:fs/promises';
 import { execSync } from 'node:child_process';
 import { buildSite } from '../site';
 import { loadItems } from '../load';
-import { renderBacklog } from '../backlog';
+import { readPlaywrightReport } from '../playwright-report';
 
 const OUT = 'site';
-const read = (file: string) => fs.readFile(file, 'utf8');
 
 const commit = process.env.GITHUB_SHA?.slice(0, 7) ?? execSync('git rev-parse --short HEAD').toString().trim();
 const repoUrl = process.env.GITHUB_REPOSITORY ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}` : undefined;
@@ -13,10 +12,12 @@ const repoUrl = process.env.GITHUB_REPOSITORY ? `${process.env.GITHUB_SERVER_URL
 const linkBase = repoUrl ? `${repoUrl}/blob/${process.env.GITHUB_SHA ?? 'main'}/docs/sdlc/` : '../docs/sdlc/';
 
 await buildSite({
-  backlogMd: renderBacklog((await loadItems('docs/sdlc')).items, { linkBase }),
-  traceMd: await read('docs/sdlc/traceability.md'),
+  items: (await loadItems('docs/sdlc')).items,
+  results: await readPlaywrightReport('test-results/results.json'),
   outDir: OUT,
   commit,
+  generatedAt: new Date().toISOString(),
+  linkBase,
   repoUrl,
 });
 await fs.cp('playwright-report', `${OUT}/playwright`, { recursive: true }).catch(() => {
