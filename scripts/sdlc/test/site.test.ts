@@ -3,6 +3,7 @@ import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { buildSite } from '../src/site';
 import type { TestResult } from '../src/playwright-report';
+import type { Item } from '../src/schema';
 import { tempTree } from './helpers';
 import { validItems, withPatch } from './fixtures';
 
@@ -18,8 +19,9 @@ const column = (html: string, status: string) => html.split(`data-status="${stat
 describe('buildSite', () => {
   it('links every page from a shared nav, including the Playwright report', async () => {
     const read = await build();
-    for (const page of ['index.html', 'backlog.html', 'traceability.html', 'tests.html']) {
+    for (const page of ['index.html', 'initiatives.html', 'backlog.html', 'traceability.html', 'tests.html']) {
       const html = read(page);
+      expect(html).toContain('href="initiatives.html"');
       expect(html).toContain('href="backlog.html"');
       expect(html).toContain('href="traceability.html"');
       expect(html).toContain('href="tests.html"');
@@ -42,6 +44,39 @@ describe('buildSite', () => {
     expect(index).toMatch(/data-release="R2"[\s\S]*?Not started/);
     const allDone = (await build(withPatch('US-002', (s) => ({ ...s, status: 'Done' }))))('index.html');
     expect(allDone).toMatch(/data-release="R1"[\s\S]*?Done/);
+  });
+
+  it('initiatives page nests initiative → epic → story, each linked to its file', async () => {
+    const html = (await build())('initiatives.html');
+    const init = html.split('data-initiative="INIT-001"')[1] ?? '';
+    expect(init).toContain('href="https://x/docs/sdlc/initiatives/INIT-001.md"');
+    const epic = init.split('data-epic="EP-001"')[1] ?? '';
+    expect(epic).toContain('href="https://x/docs/sdlc/epics/EP-001.md"');
+    expect(epic).toMatch(/data-story="US-001"[\s\S]*data-story="US-002"/);
+    expect(epic).toContain('href="https://x/docs/sdlc/stories/US-001.md"');
+  });
+
+  it('initiatives page shows status and progress at each level', async () => {
+    const html = (await build())('initiatives.html');
+    expect(html).toMatch(/data-initiative="INIT-001"[\s\S]*?Approved/);
+    expect(html).toMatch(/data-epic="EP-001"[\s\S]*?R1[\s\S]*?In Progress/);
+    expect(html).toContain('1 of 2 stories done');
+    expect(html).toMatch(/data-story="US-001"[\s\S]*?Done[\s\S]*?2 test cases/);
+  });
+
+  it('initiatives page shows initiatives and epics that have no children yet', async () => {
+    const items = [
+      ...validItems(),
+      { id: 'INIT-002', type: 'initiative', title: 'Later idea', status: 'Draft' },
+      { id: 'EP-002', type: 'epic', title: 'Empty epic', parent: 'INIT-001', release: 'R2', status: 'Draft' },
+    ] as Item[];
+    const html = (await build(items))('initiatives.html');
+    expect(html.split('data-initiative="INIT-002"')[1]).toContain('No epics yet');
+    expect(html.split('data-epic="EP-002"')[1]).toContain('No stories yet');
+  });
+
+  it('initiatives page says so when there are no initiatives', async () => {
+    expect((await build([]))('initiatives.html')).toContain('No initiatives yet');
   });
 
   it('backlog places each story card in its status column, linked to its file', async () => {
@@ -83,7 +118,7 @@ describe('buildSite', () => {
 
   it('escapes item titles', async () => {
     const read = await build(withPatch('US-001', (s) => ({ ...s, title: '<b>Room</b> & "lobby"' })));
-    for (const page of ['backlog.html', 'traceability.html']) {
+    for (const page of ['initiatives.html', 'backlog.html', 'traceability.html']) {
       expect(read(page)).toContain('&lt;b&gt;Room&lt;/b&gt; &amp; &quot;lobby&quot;');
       expect(read(page)).not.toContain('<b>Room</b>');
     }
