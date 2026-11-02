@@ -94,3 +94,27 @@ These are notes on how Claude handled each stage: prompt patterns that worked, t
 - **Method:** test cases were written as data and rendered through the template (`.superpowers/gen-r1-test-cases.mjs`, not committed), the same approach as the stories.
 - **Owner edits during review:** _(fill in at sign-off)_
 - **Skill candidate `/test-cases`:** ask about coverage, timers, manual scope and exit criteria → one TC per story key path (or per criterion) → link stories → update the test plan → `sdlc:validate` → open the `sdlc/<release>-05-test-cases` PR.
+
+### Stage 6: Build, Sprint 1 (US-001 to US-005, 2026-11-02)
+
+- **Process:** the `writing-plans` skill produced `docs/superpowers/plans/2026-11-02-sprint-01.md` (6 tasks with interfaces and review focus). The owner approved four planning calls as options:
+  - TC-011 re-parented to US-005, US-008, US-009 and US-013, so it's due in Sprint 3;
+  - "Start game" makes the host draw at once;
+  - a disconnect counts as leaving until US-018;
+  - one sprint branch and one PR.
+  `executing-plans` then built it test-first. A ledger recorded every deviation as a ruling.
+- **What was built:**
+  - `shared` protocol and constants;
+  - a pure `Rooms` model (codes, nickname rules, host hand-over, drawer-only action log with clamping and the 50,000-point cap, 5-minute clean-up);
+  - Socket.IO handlers;
+  - the Game night client (home and join, live lobby, invite link with Copy, start);
+  - a live canvas with 30 ms batching, touch support and repaint on resize.
+- **Tests:** 28 server and client unit tests, plus 11 Playwright tests (TC-001, TC-003 to TC-010, TC-012, and the smoke test). TC-002 (a real device on the Wi-Fi) stays manual for the R1 exit.
+- **Caught by tests:**
+  - A type check exposed a crash: points with no open stroke matched `undefined === undefined`. A unit test reproduced it before the fix.
+  - TC-009 had a timing bug in the test itself: it read the guesser's "partial" ink after the pen was lifted.
+- **Pitfalls for the skill:**
+  - `crypto.randomUUID` and `navigator.clipboard` need a secure context, but LAN links are plain http, so ids use a fallback and Copy falls back to selecting the text.
+  - Running Playwright with `--reporter=line` replaces the JSON reporter, so traceability shows "not run". Run plain `npx playwright test` before `sdlc:trace`.
+- **Owner edits during review:** _(fill in at sign-off)_
+- **Skill candidate `/build-sprint`:** plan the sprint's stories (`writing-plans`) → ask only the cross-sprint calls → `executing-plans` with a ledger → mark stories Done once their TCs have green Playwright tests → `sdlc:validate` and `sdlc:trace` → one sprint PR.

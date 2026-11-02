@@ -19,7 +19,7 @@ npm start
 The server prints where to join:
 
 ```
-Sketch Game is running.
+Screwdle is running.
   On this PC:     http://localhost:3000
   Same network:   http://192.168.1.20:3000
 ```
