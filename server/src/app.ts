@@ -5,11 +5,13 @@ import { createRequire } from 'node:module';
 import express from 'express';
 import { Server } from 'socket.io';
 import { SERVER_HELLO, type ServerHello } from '@sketch/shared';
+import { Rooms } from './game/rooms';
+import { attachGame } from './socket';
 
 // Resolves to server/package.json from both src/ (tests, dev) and dist/ (production).
 const { version } = createRequire(import.meta.url)('../package.json') as { version: string };
 
-export function createServer(opts: { clientDist?: string }): { httpServer: http.Server; io: Server } {
+export function createServer(opts: { clientDist?: string; joinBase?: string }): { httpServer: http.Server; io: Server } {
   const app = express();
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });
@@ -24,8 +26,9 @@ export function createServer(opts: { clientDist?: string }): { httpServer: http.
   const httpServer = http.createServer(app);
   const io = new Server(httpServer);
   io.on('connection', (socket) => {
-    const hello: ServerHello = { version, joinBase: '' };
+    const hello: ServerHello = { version, joinBase: opts.joinBase ?? '' };
     socket.emit(SERVER_HELLO, hello);
   });
+  attachGame(io, new Rooms({}));
   return { httpServer, io };
 }
