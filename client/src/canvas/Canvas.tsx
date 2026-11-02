@@ -2,6 +2,7 @@ import { useEffect, useRef, type PointerEvent } from 'react';
 import type { Socket } from 'socket.io-client';
 import { BATCH_MS, CANVAS_H, CANVAS_W, EV, type Action, type StrokeBegin, type StrokePoints } from '@sketch/shared';
 import { drawLine, replay } from './render';
+import { PointerLock, toLogical } from './pointer';
 
 // Sprint 1 pen; the palette and sizes arrive with US-006.
 const PEN = { color: '#000000', size: 10 };
@@ -15,6 +16,7 @@ export function Canvas({ canDraw, socket }: { canDraw: boolean; socket: Socket }
   const log = useRef<Action[]>([]);
   const scale = useRef(1);
   const pen = useRef<{ stroke: Action; pending: number[]; timer: ReturnType<typeof setInterval> }>();
+  const lock = useRef(new PointerLock());
 
   const ctx = () => ref.current?.getContext('2d') ?? undefined;
 
@@ -66,10 +68,7 @@ export function Canvas({ canDraw, socket }: { canDraw: boolean; socket: Socket }
     };
   }, [socket]);
 
-  const logical = (e: PointerEvent<HTMLCanvasElement>) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    return [Math.round(((e.clientX - r.left) / r.width) * CANVAS_W), Math.round(((e.clientY - r.top) / r.height) * CANVAS_H)];
-  };
+  const logical = (e: PointerEvent<HTMLCanvasElement>) => toLogical(e.clientX, e.clientY, e.currentTarget.getBoundingClientRect());
 
   const flush = () => {
     const p = pen.current;
@@ -77,7 +76,7 @@ export function Canvas({ canDraw, socket }: { canDraw: boolean; socket: Socket }
   };
 
   const down = (e: PointerEvent<HTMLCanvasElement>) => {
-    if (!canDraw || pen.current) return;
+    if (!canDraw || !lock.current.take(e.pointerId)) return;
     e.currentTarget.setPointerCapture?.(e.pointerId);
     const [x, y] = logical(e);
     const stroke: Action = { kind: 'stroke', id: newId(), ...PEN, points: [x, y] };
@@ -90,7 +89,7 @@ export function Canvas({ canDraw, socket }: { canDraw: boolean; socket: Socket }
 
   const move = (e: PointerEvent<HTMLCanvasElement>) => {
     const p = pen.current;
-    if (!p) return;
+    if (!p || !lock.current.owns(e.pointerId)) return;
     const point = logical(e);
     const from = p.stroke.points.slice(-2);
     p.stroke.points.push(...point);
@@ -99,9 +98,9 @@ export function Canvas({ canDraw, socket }: { canDraw: boolean; socket: Socket }
     if (c) drawLine(c, PEN.color, PEN.size, [...from, ...point], scale.current);
   };
 
-  const up = () => {
+  const up = (e: PointerEvent<HTMLCanvasElement>) => {
     const p = pen.current;
-    if (!p) return;
+    if (!p || !lock.current.release(e.pointerId)) return;
     clearInterval(p.timer);
     flush();
     socket.emit(EV.drawEnd, p.stroke.id);

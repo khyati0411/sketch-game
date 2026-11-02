@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { EV, SERVER_HELLO, type Ack, type RoomView, type ServerHello } from '@sketch/shared';
 
@@ -20,6 +20,10 @@ export function useRoom() {
   const [hello, setHello] = useState<ServerHello>();
   const [view, setView] = useState<RoomView>();
   const [error, setError] = useState<RoomError>();
+  // The room this tab is in or was last in; from the invite path until the player enters one.
+  const [code, setCode] = useState(() => /^\/r\/([A-Za-z]{6})$/.exec(location.pathname)?.[1].toUpperCase());
+  const inRoom = useRef(false);
+  inRoom.current = view !== undefined;
 
   useEffect(() => {
     const onHello = (h: ServerHello) => {
@@ -27,7 +31,14 @@ export function useRoom() {
       setStatus(`connected v${h.version}`);
     };
     const onState = (v: RoomView) => setView(v);
-    const onDisconnect = () => setStatus('disconnected');
+    // The server drops a disconnected player (Sprint 1), so a stale room view would show a game
+    // this player is no longer in. Go back to the join screen for the same room instead.
+    const onDisconnect = () => {
+      setStatus('disconnected');
+      if (!inRoom.current) return;
+      setView(undefined);
+      setError({ code: 'disconnected', message: 'You were disconnected. Join again when you are back online.' });
+    };
     socket.on(SERVER_HELLO, onHello);
     socket.on(EV.roomState, onState);
     socket.on('disconnect', onDisconnect);
@@ -44,6 +55,7 @@ export function useRoom() {
       socket.emit(event, payload, (ack: Ack<RoomView>) => {
         if (ack.ok) {
           setView(ack.value);
+          setCode(ack.value.code);
           history.replaceState(null, '', `/r/${ack.value.code}`);
         } else setError({ code: ack.error, message: MESSAGES[ack.error](payload.name) });
       });
@@ -57,6 +69,11 @@ export function useRoom() {
     hello,
     view,
     error,
+    code,
+    forgetCode: () => {
+      setCode(undefined);
+      history.replaceState(null, '', '/');
+    },
     create: (name: string, color?: string) => enter(EV.roomCreate, { name, color }),
     join: (code: string, name: string, color?: string) => enter(EV.roomJoin, { code, name, color }),
     start: () => socket.emit(EV.gameStart, () => {}),

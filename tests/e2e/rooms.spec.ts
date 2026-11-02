@@ -91,3 +91,16 @@ test('TC-008 start is disabled alone and not offered to guests', async ({ page, 
   await expect(maya.getByTestId('start-game')).toHaveCount(0);
   await expect(maya.getByTestId('lobby-hint')).toHaveText('Waiting for the host to start');
 });
+
+test('a player whose connection drops is told and can join again', async ({ page, browser }) => {
+  const invite = await createRoom(page, 'Khyati');
+  const maya = await joinRoom(browser, invite, 'Maya');
+  await maya.context().setOffline(true);
+  await expect(maya.getByTestId('join-error')).toHaveText(/disconnected/i, { timeout: 20_000 });
+  await expect(maya.getByTestId('join-room')).toBeVisible();
+  await expect.poll(() => playerNames(page), { timeout: 20_000 }).toEqual(['Khyati']);
+  await maya.context().setOffline(false);
+  await maya.getByTestId('nickname').fill('Maya');
+  await maya.getByTestId('join-room').click();
+  await expect.poll(() => playerNames(page)).toEqual(['Khyati', 'Maya']);
+});

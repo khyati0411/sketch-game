@@ -24,7 +24,9 @@ export function createServer(opts: { clientDist?: string; joinBase?: string }): 
   }
 
   const httpServer = http.createServer(app);
-  const io = new Server(httpServer);
+  // Notice a dropped player within about 10 s instead of Socket.IO's default 45 s, so a player
+  // who rejoins is not refused for a name still held by their old connection.
+  const io = new Server(httpServer, { pingInterval: 5000, pingTimeout: 5000 });
   io.on('connection', (socket) => {
     const hello: ServerHello = { version, joinBase: opts.joinBase ?? '' };
     socket.emit(SERVER_HELLO, hello);

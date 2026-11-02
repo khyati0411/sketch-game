@@ -1,8 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import {
   BRUSH_SIZES,
-  CANVAS_H,
-  CANVAS_W,
+  clampPoint,
   MAX_PLAYERS,
   MAX_POINTS_PER_TURN,
   MIN_PLAYERS,
@@ -38,7 +37,6 @@ const PALETTE_HEX = new Set<string>(PALETTE.map((c) => c.hex));
 const SIZES = new Set<number>(BRUSH_SIZES);
 
 const fail = (error: Exclude<Ack<never>, { ok: true }>['error']) => ({ ok: false, error }) as const;
-const clamp = (v: number, max: number) => Math.min(max, Math.max(0, Math.round(v)));
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 
 /** Trimmed nickname of 1–NAME_MAX characters, or undefined (US-002). */
@@ -116,7 +114,7 @@ export class Rooms {
     if (typeof size !== 'number' || !SIZES.has(size)) return undefined;
     if (typeof x !== 'number' || typeof y !== 'number' || !Number.isFinite(x) || !Number.isFinite(y)) return undefined;
     if (room.pointCount >= MAX_POINTS_PER_TURN) return undefined;
-    const start = [clamp(x, CANVAS_W), clamp(y, CANVAS_H)];
+    const start = clampPoint(x, y);
     room.openStroke = { kind: 'stroke', id, color, size, points: start };
     room.log.push(room.openStroke);
     room.pointCount += 1;
@@ -132,7 +130,7 @@ export class Rooms {
     for (let i = 0; i + 1 < p.points.length && clean.length / 2 < left; i += 2) {
       const [x, y] = [p.points[i], p.points[i + 1]];
       if (typeof x === 'number' && typeof y === 'number' && Number.isFinite(x) && Number.isFinite(y))
-        clean.push(clamp(x, CANVAS_W), clamp(y, CANVAS_H));
+        clean.push(...clampPoint(x, y));
     }
     if (!clean.length) return undefined;
     stroke.points.push(...clean);
