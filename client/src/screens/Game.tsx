@@ -1,11 +1,12 @@
 import type { Socket } from 'socket.io-client';
 import type { RoomView } from '@sketch/shared';
 import { PlayerCard } from './PlayerCard';
+import { Canvas } from '../canvas/Canvas';
 
 type Props = { view: RoomView; socket: Socket };
 
 /** The drawing turn. Sprint 1: the host draws and everyone watches (US-005). */
-export function Game({ view }: Props) {
+export function Game({ view, socket }: Props) {
   const drawer = view.players.find((p) => p.isDrawer);
   return (
     <main className="page">
@@ -25,7 +26,7 @@ export function Game({ view }: Props) {
           </ul>
         </aside>
         <section style={{ flex: '999 1 520px', minWidth: 0 }}>
-          <div data-testid="canvas" style={{ background: '#fff', borderRadius: 'var(--radius-panel)', aspectRatio: '4 / 3' }} />
+          <Canvas canDraw={view.players.some((p) => p.isDrawer && p.id === view.youId)} socket={socket} />
         </section>
       </div>
     </main>
