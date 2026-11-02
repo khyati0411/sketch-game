@@ -3,7 +3,7 @@ id: SPRINT-XX
 type: sprint
 title: Sprint XX
 release: R1
-goal: <One-sentence sprint goal>
+goal: "<One-sentence sprint goal>"   # keep the quotes: goals often contain a colon
 start: "2026-01-01"
 end: "2026-01-14"
 status: Planned          # Planned | Active | Closed

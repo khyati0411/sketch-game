@@ -2,7 +2,7 @@
 id: INIT-001
 type: initiative
 title: Screwdle, a draw-and-guess party game for friends and family
-status: Draft            # Draft | Approved
+status: Approved            # Draft | Approved
 ---
 
 **Owner:** Khyati · **Created:** 2026-10-30 · **Source:** [design doc](../../superpowers/specs/2026-10-28-sketch-game-design.md), [ADR-002](../design/ADR-002.md)
