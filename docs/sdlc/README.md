@@ -53,9 +53,9 @@ These are notes on how Claude handled each stage: prompt patterns that worked, t
 - **Inputs Claude used:** the design doc (intent, goals, release scope), ADR-002 (hosting), and the `initiative` template.
 - **Inputs only the owner could give (asked as options):** target audience → personas; which success-metric families count; the product name. Everything else was derived.
 - **What Claude drafted:** all sections. Goals map 1:1 to measurable metrics (G1–G5), and each risk has a mitigation that points to a later stage or doc.
-- **Owner edits during review:** _(fill in at sign-off: none / list)_
+- **Owner edits during review:** none. Approved as-is on 2026-11-02.
 - **Skill candidate `/initiative`:** read the design doc and ADRs → ask about audience, metrics and name → fill the template → run `sdlc:validate` → open the `sdlc/<release>-01-initiative` PR.
-- **Pitfall:** the initiative's status stays `Draft` until the owner signs off. It flips to `Approved` in the same PR, just before merge.
+- **Pitfall:** the initiative's status stays `Draft` until the owner signs off. It should flip to `Approved` in the same PR, just before merge. For INIT-001 that step was missed: the PR merged with `Draft`, and the flip happened in the stage 3 PR. The `/initiative` skill should ask for sign-off before the merge.
 
 ### Stage 2: Epics and stories (R1, 2026-10-30)
 
@@ -64,5 +64,14 @@ These are notes on how Claude handled each stage: prompt patterns that worked, t
 - **What Claude drafted:** 5 epics and 22 stories (63 points). Every R1 scope item in INIT-001 maps to at least one story. The design doc's room rules became EP-005, and goals G2 and G3 became the non-functional stories US-021 and US-022. Every story uses an INIT-001 persona and has Given/When/Then acceptance criteria.
 - **Method:** stories were written as data (id, epic, persona, want, so that, criteria) and rendered through the templates, which keeps the format identical across all 22.
 - **Left for later stages:** sprint assignment (stage 3), exact palette, word list, sync model and scoring formula (stage 4 ADRs), test cases (stage 5).
-- **Owner edits during review:** _(fill in at sign-off)_
+- **Owner edits during review:** none. Merged as-is in PR #7.
 - **Skill candidate `/stories`:** read the initiative and design → one epic per capability area → stories per scope item with personas and Given/When/Then → `sdlc:validate` → open the `sdlc/<release>-02-stories` PR.
+
+### Stage 3: Sprint planning (R1, 2026-11-02)
+
+- **Inputs Claude used:** the 22 R1 stories with their points and epics, the `sprint` template, and the dependencies between stories (a room before joining, strokes before guessing, a turn before rounds).
+- **Owner input (asked as options):** sprint length (1 week), capacity (about 16 points, so 4 sprints), and grouping (a playable slice first, not one epic at a time).
+- **What Claude drafted:** SPRINT-01 to SPRINT-04, 2–29 Nov 2026, with 15, 15, 16 and 17 points. Sprint 1 gives a room with live shared drawing, sprint 2 the first playable and scored turn, sprint 3 a full game with every drawing tool, and sprint 4 the resilience and performance stories (goals G2 and G3). Each story got its `sprint:` line.
+- **Pitfall caught by the validator:** three sprint goals contained a colon, which is invalid unquoted YAML. `sdlc:validate` rejected the files before commit. The template now quotes `goal`.
+- **Owner edits during review:** _(fill in at sign-off)_
+- **Skill candidate `/sprints`:** ask length, capacity and grouping → order stories by dependency → fill sprints up to capacity → set each story's `sprint:` → `sdlc:validate` and `sdlc:backlog` → open the `sdlc/<release>-03-sprints` PR.
