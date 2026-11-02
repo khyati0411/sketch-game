@@ -24,7 +24,7 @@ export function createServer(opts: { clientDist?: string }): { httpServer: http.
   const httpServer = http.createServer(app);
   const io = new Server(httpServer);
   io.on('connection', (socket) => {
-    const hello: ServerHello = { version };
+    const hello: ServerHello = { version, joinBase: '' };
     socket.emit(SERVER_HELLO, hello);
   });
   return { httpServer, io };
