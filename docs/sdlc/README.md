@@ -75,3 +75,12 @@ These are notes on how Claude handled each stage: prompt patterns that worked, t
 - **Pitfall caught by the validator:** three sprint goals contained a colon, which is invalid unquoted YAML. `sdlc:validate` rejected the files before commit. The template now quotes `goal`.
 - **Owner edits during review:** _(fill in at sign-off)_
 - **Skill candidate `/sprints`:** ask length, capacity and grouping → order stories by dependency → fill sprints up to capacity → set each story's `sprint:` → `sdlc:validate` and `sdlc:backlog` → open the `sdlc/<release>-03-sprints` PR.
+
+### Stage 4: Technical design (R1, 2026-11-02)
+
+- **Inputs Claude used:** design doc §5 (rules and targets) and §9 (what was left to the builder), ADR-002, the 22 R1 stories and their acceptance criteria, and the existing `shared`/`server`/`client` skeleton.
+- **Owner input (asked as options):** sync model (server action log), scoring (linear in time left), word list (written by Claude, about 300 words), and when to see UI mockups (in this stage). After seeing two directions with three screens each, the owner picked **B · Game night**.
+- **What Claude drafted:** `design/architecture.md` (overview, workspaces, event table, test hooks), ADR-003 (drawing sync), ADR-004 (rooms and game flow), ADR-005 (scoring, with worked numbers for US-015), ADR-006 (word list and guess matching), ADR-007 (UI tokens, screens, test ids), `shared/words/en.json` (302 words, checked against ADR-006's rules), and a [mockup canvas](https://claude.ai/artifact/1D4wJxDvyazowQv4FxeHrB). Every R1 story now links the ADRs it depends on, and ADR-002 lists its hosting-dependent stories.
+- **Checks:** a script checked the word list for duplicates and the length and character rules (it caught one duplicate and one three-word entry); `sdlc:validate` checked every ADR ↔ story link.
+- **Owner edits during review:** _(fill in at sign-off)_
+- **Skill candidate `/design`:** read the design doc's open points and the stories → ask only the product choices (sync, scoring, content, look) → write the architecture and one ADR per decision, with worked examples the test cases can reuse → mockups for the look → link ADRs and stories → `sdlc:validate` → open the `sdlc/<release>-04-design` PR.
