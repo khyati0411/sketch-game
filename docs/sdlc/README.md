@@ -84,3 +84,13 @@ These are notes on how Claude handled each stage: prompt patterns that worked, t
 - **Checks:** a script checked the word list for duplicates and the length and character rules (it caught one duplicate and one three-word entry); `sdlc:validate` checked every ADR ↔ story link.
 - **Owner edits during review:** _(fill in at sign-off)_
 - **Skill candidate `/design`:** read the design doc's open points and the stories → ask only the product choices (sync, scoring, content, look) → write the architecture and one ADR per decision, with worked examples the test cases can reuse → mockups for the look → link ADRs and stories → `sdlc:validate` → open the `sdlc/<release>-04-design` PR.
+
+### Stage 5: Test plan and test cases (R1, 2026-11-02)
+
+- **Inputs Claude used:** the acceptance criteria of all 22 R1 stories, ADR-003 to ADR-007 (exact values, test hooks), and the `test-case` template.
+- **Owner input (asked as options):** coverage (key paths per story, about 35 TCs), timers in end-to-end tests (a test mode with short timers), what stays manual (real devices on the Wi-Fi, the family play-test), and exit criteria (all automated tests pass and every manual TC has a recorded run).
+- **What Claude drafted:** TC-001 to TC-036 (34 automated, 2 manual), each with an objective naming the criteria it covers, preconditions and a step/expected table. Each automated TC names its Playwright file. Every story's `links.tests` lists its TCs. The test plan now has scope, strategy, unit tests for exact ADR values, test-only switches (`SCREWDLE_TIMERS`, `SCREWDLE_WORDS`) and entry/exit criteria.
+- **Conflicts found and fixed while writing tests:** US-002 allows 20-character nicknames but ADR-004 said 16; the ADR now says 20. ADR-004 was unclear whether a drawer's dropped connection ends the turn now or after 60 s; it now ends the turn at once and keeps the seat. Writing tests from the acceptance criteria surfaced both before any code existed.
+- **Method:** test cases were written as data and rendered through the template (`.superpowers/gen-r1-test-cases.mjs`, not committed), the same approach as the stories.
+- **Owner edits during review:** _(fill in at sign-off)_
+- **Skill candidate `/test-cases`:** ask about coverage, timers, manual scope and exit criteria → one TC per story key path (or per criterion) → link stories → update the test plan → `sdlc:validate` → open the `sdlc/<release>-05-test-cases` PR.
